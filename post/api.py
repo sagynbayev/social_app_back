@@ -1,8 +1,8 @@
 from django.db.migrations import serializer
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from django.http import JsonResponse
-from post.models import Post
-from post.serializers import PostSerializer
+from post.models import Post, Like, Comment
+from post.serializers import PostSerializer, PostDetailSerializer, CommentSerializer
 from post.forms import PostForm
 from account.models import User
 from account.serializers import UserSerializer
@@ -20,6 +20,15 @@ def post_list(request):
     serializer = PostSerializer(posts, many=True)
 
     return JsonResponse(serializer.data, safe=False)
+
+
+@api_view(['GET'])
+def post_detail(request, pk):
+    post = Post.objects.get(pk=pk)
+
+    return JsonResponse({
+        'post': PostDetailSerializer(post).data
+    })
 
 
 @api_view(['GET'])
@@ -48,3 +57,33 @@ def post_create(request):
         return JsonResponse(serializer.data, safe=False)
     else:
         return JsonResponse({'error': 'error sheeesh'})
+
+
+@api_view(['POST'])
+def post_like(request, pk):
+    post = Post.objects.get(pk=pk)
+    print(post.likes.filter(created_by=request.user))
+    if not post.likes.filter(created_by=request.user):
+        like = Like.objects.create(created_by=request.user)
+        # post = Post.objects.get(pk=pk)
+        post.likes_count = post.likes_count + 1
+        post.likes.add(like)
+        post.save()
+
+        return JsonResponse({'message': "like created"})
+    else:
+        return JsonResponse({'message': "Post already liked"})
+
+
+@api_view(['POST'])
+def post_create_comments(request, pk):
+
+    comment = Comment.objects.create(body=request.data.get('body'), created_by=request.user)
+    post = Post.objects.get(pk=pk)
+    post.comments.add(comment)
+    post.comments_count = post.comments_count + 1
+    post.save()
+
+    serializer = CommentSerializer(comment)
+
+    return JsonResponse(serializer.data, safe=False)
