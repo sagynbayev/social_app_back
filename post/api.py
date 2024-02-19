@@ -1,8 +1,8 @@
 from django.db.migrations import serializer
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from django.http import JsonResponse
-from post.models import Post, Like, Comment
-from post.serializers import PostSerializer, PostDetailSerializer, CommentSerializer
+from post.models import Post, Like, Comment, Trend
+from post.serializers import PostSerializer, PostDetailSerializer, CommentSerializer, TrendSerializer
 from post.forms import PostForm
 from account.models import User
 from account.serializers import UserSerializer
@@ -17,6 +17,12 @@ def post_list(request):
         user_ids.append(user.id)
 
     posts = Post.objects.filter(created_by_id__in=list(user_ids))
+
+    trend = request.GET.get('trend', '')
+
+    if trend:
+        posts = posts.filter(body__icontains='#' + trend)
+
     serializer = PostSerializer(posts, many=True)
 
     return JsonResponse(serializer.data, safe=False)
@@ -77,7 +83,6 @@ def post_like(request, pk):
 
 @api_view(['POST'])
 def post_create_comments(request, pk):
-
     comment = Comment.objects.create(body=request.data.get('body'), created_by=request.user)
     post = Post.objects.get(pk=pk)
     post.comments.add(comment)
@@ -86,4 +91,10 @@ def post_create_comments(request, pk):
 
     serializer = CommentSerializer(comment)
 
+    return JsonResponse(serializer.data, safe=False)
+
+
+@api_view(['GET'])
+def get_trends(request):
+    serializer = TrendSerializer(Trend.objects.all(), many=True)
     return JsonResponse(serializer.data, safe=False)
