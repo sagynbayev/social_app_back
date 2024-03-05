@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import django
-import sys
 import os
+import sys
+
 from datetime import timedelta
 from collections import Counter
 from django.utils import timezone
@@ -32,4 +35,3 @@ for post in Post.objects.filter(created_at__gte=twenty_four_hours).filter(is_pri
 
 for trend in Counter(trends).most_common(10):
     Trend.objects.create(hashtag=trend[0], occurences=trend[1])
-print(trends)
